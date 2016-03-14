@@ -6,27 +6,27 @@ import os.path
 
 current_baud = 38400
 
-serial = serial.Serial('/dev/ttyUSB1', current_baud, timeout=1)
-# serial = serial.Serial('/dev/tty.usbserial-A5027XNU', 38400, timeout=1)
+# serial = serial.Serial('/dev/ttyUSB1', current_baud, timeout=1)
+# serial = serial.Serial('/dev/tty.usbserial-A5027XNU', 38400, timeout=3)
+serial = serial.Serial('/dev/tty.SLAB_USBtoUART', 38400, timeout=10)
 
 class TestLinkSprite(unittest.TestCase):
     def setUp(self):
         self.ls = LinkSprite(serial)
-        self.ls.clearPort()
-        self.ls.reset()
-        time.sleep(.1)
+        self.assertTrue(self.ls.reset())
+        self.assertTrue(self.ls.changeBaud(115200))
 
     def tearDown(self) :
-        self.ls.reset()
-        self.ls.serial.baudrate = current_baud
+        self.assertTrue(self.ls.reset())
+        # self.ls.serial.baudrate = current_baud
 
     def getImageDimensions(self, f):
         """ A utility method to make sure the dimensions of the jpg file were
         set over serial correctly
         """
         sof0 = b'\xFF\xC0'  # Marker for meta info about the jpg
-        height_offset = 5 # two byte width
-        width_offset = 7  # two byte width
+        height_offset = 5
+        width_offset = 7
 
         pic_height = None
         pic_width = None
@@ -47,18 +47,13 @@ class TestLinkSprite(unittest.TestCase):
         return (pic_width, pic_height)
 
 
-
     def testClassInitiation(self):
         self.assertFalse(self.ls is None)
 
     def testReset(self) :
         # Returns
-        rst_resp = (b'v\x00&\x00\x00VC0703 1.00\r\nCtrl infr exist\r\nUser-defined sensor\r\n625\r\nInit end\r\n')
-
         resp = self.ls.reset()
-        self.assertTrue(resp[0] > 0) # Response length is greater than 0 bytes
-        self.assertEqual(resp[1], rst_resp)
-        self.assertEqual(self.ls.getWaiting(), 0)   # Check how many bytes are available
+        self.assertTrue(resp)
 
     def testGetPicSize(self) :
         self.ls.takePic()
@@ -67,11 +62,7 @@ class TestLinkSprite(unittest.TestCase):
         self.assertIsInstance(resp[0], int)
         self.assertTrue(resp[0] > 0 and resp[0] <= 65535)
 
-
     def testSetImageSize(self):
-        """ Test setting the image size over serial. Subsequent pictures Should
-        have their dimensions change accordingly
-        """
         res = self.ls.setPicDim('160x120')
         self.ls.reset()
         self.ls.takePic()
@@ -133,28 +124,15 @@ class TestLinkSprite(unittest.TestCase):
         size_byte = self.ls.getPicDimBytes('132x12') # Should miss and get default
         self.assertEqual(size_byte, b'\x11')
 
-    def testFlow(self):
-        """
-            Tests the work flow that's supposed to happen....
-        """
-        for n in range(0, 10) :
-            comp_res = self.ls.setCompression(50)
-            time.sleep(.1)
-            self.assertTrue(comp_res)
-            self.ls.takePic()
-            self.ls.readPicture('flow.jpg')
-            self.ls.done()
-
     def testCompressionRatio(self):
-         for n in range(0, 260, 15) :
+        print('Now in ratio')
+        for n in range(1, 260, 15) :
              # Set the compression and slleeeeepppppp
              self.ls.setCompression(n)
-             time.sleep(.1)
 
              self.ls.takePic()
              self.ls.readPicture('./compression_test/comp' + str(n) + '.jpg')
              self.assertTrue(self.ls.done())
-             time.sleep(.1)
 
     def testBaudBytes(self) :
         baud_bytes = self.ls.getBaudBytes(38400)
@@ -176,10 +154,20 @@ class TestLinkSprite(unittest.TestCase):
 
         # If we get this far try other things
         self.ls.setCompression(10)
-        time.sleep(.1)
         self.ls.takePic()
         self.ls.readPicture('fastBaud.jpg')
         self.assertTrue(self.ls.done())
+
+    def testCycleBauds(self):
+        bauds = [9600, 19200, 38400, 57600, 115200]
+
+        for baud in bauds :
+            print('Reading at %d baud' % baud)
+            self.assertTrue(self.ls.reset())
+            self.assertTrue(self.ls.changeBaud(baud))
+            self.ls.takePic()
+            self.ls.readPicture('./cyclebaud_test/pic' + str(baud) + '.jpg')
+            self.assertTrue(self.ls.done())
 
 if __name__ == '__main__':
   unittest.main()

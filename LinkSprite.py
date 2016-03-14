@@ -24,7 +24,7 @@ class LinkSprite :
     # read_cont + address(H L) + read_cont_sep + read_size + read_cont_delay
     read_cont = b'\x56\x00\x32\x0C\x00\x0A\x00\x00'
     read_cont_sep = b'\x00\x00'
-    read_size = b'\x0C\x80'
+    read_size = b'\x0F\x00'
     read_size_inc = int.from_bytes(read_size, byteorder='big')
     read_cont_delay = b'\x00\x0A'
     read_resp = b'\x76\x00\x32\x00\x00'
@@ -50,6 +50,8 @@ class LinkSprite :
                    57600 : b'\x1C\x4C',
                    115200 : b'\x0D\xA6',}
 
+    default_baud = 38400
+
     def __init__(self, serial):
         self.serial = serial
         self.clearPort()
@@ -70,21 +72,26 @@ class LinkSprite :
         """
         Tries to reset the camera. Need to clean this up
         """
-        self.serial.write(self.rst_cmd)
-        resp_data = self.serial.read(len(self.rst_resp))
+        success = False
+        resp = b''
 
-        if resp_data == self.rst_resp :
-            print('Camera Reset')
+        self.clearPort()
+
+        # Will hang here if there's a problem
+        while not b'Init end\r\n' in resp :
+            self.serial.write(self.rst_cmd)
+            time.sleep(.1)
+            resp = self.serial.read(len(self.rst_resp))
+            self.serial.baudrate = self.default_baud
+
+        if b'Init end\r\n' in resp :
+            success = True
         else :
-            counter = 3
-            while not resp_data == self.rst_resp and counter > 0 :
-                print('Trying Reset Again')
-                self.serial.write(self.rst_cmd)
-                resp_data = self.serial.read(len(self.rst_resp))
-                counter -= 1
-        time.sleep(3)
+            print(resp)
 
-        return resp_data == self.rst_resp
+        time.sleep(2)
+
+        return success
 
     # Reads and returns the processed serial data so its only jpg data
     def readChunk(self, address) :
@@ -153,6 +160,7 @@ class LinkSprite :
         # print(list(self.comp_cmd + comp_bytes))
         self.serial.write(self.comp_cmd + comp_bytes)
         resp = self.serial.read(len(self.comp_resp))
+        time.sleep(.25)
 
         return resp == self.comp_resp
 
@@ -162,7 +170,8 @@ class LinkSprite :
         """
         while self.serial.in_waiting :
             self.serial.read(self.serial.in_waiting)
-        print('Bytes in waiting %d' % self.serial.in_waiting)
+
+        return self.serial.in_waiting
 
     def getWaiting(self):
         """Returns how many bytes are waiting to be read in the serial buffer.
@@ -203,12 +212,15 @@ class LinkSprite :
         baud_cmd = self.baud_cmd + baud_bytes
 
         self.serial.write(baud_cmd)  # Try to change the cameras baud
-        resp = self.serial.read(len(self.baud_resp))
+        time.sleep(.1)
+        resp = self.serial.read(self.serial.in_waiting)
 
-        if resp == self.baud_resp:
+        if len(resp) >= len(self.baud_resp) :
+            print('Updated the baud')
             self.serial.baudrate = baud # update the baudrate
             success = True
-
+        else :
+            print(resp)
         return success
 
 
