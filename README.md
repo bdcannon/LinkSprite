@@ -25,6 +25,6 @@ I have not tested this code for python 2.7, but works well with python3.2+
 
 
 Stuff that needs to be worked on.
-1. Code Needs to be more robust
-2. Some class methods are returning useless stuff
-3. Thers some magic numbers and sleeps floating around
+* Code Needs to be more robust
+* Some class methods are returning useless stuff
+* Thers some magic numbers and sleeps floating around
