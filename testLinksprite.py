@@ -3,6 +3,7 @@ import serial
 from LinkSprite import LinkSprite
 import time
 import os.path
+from os import makedirs
 
 current_baud = 38400
 
@@ -125,9 +126,11 @@ class TestLinkSprite(unittest.TestCase):
         self.assertEqual(size_byte, b'\x11')
 
     def testCompressionRatio(self):
-        print('Now in ratio')
+        # Check if the output folder exists
+        if not os.path.isdir('compression_test') :
+            makedirs('compression_test')
+
         for n in range(1, 260, 15) :
-             # Set the compression and slleeeeepppppp
              self.ls.setCompression(n)
 
              self.ls.takePic()
@@ -159,6 +162,9 @@ class TestLinkSprite(unittest.TestCase):
         self.assertTrue(self.ls.done())
 
     def testCycleBauds(self):
+        if not os.path.isdir('cyclebaud_test') :
+            makedirs('cyclebaud_test')
+
         bauds = [9600, 19200, 38400, 57600, 115200]
 
         for baud in bauds :
