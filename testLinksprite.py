@@ -73,6 +73,8 @@ class TestLinkSprite(unittest.TestCase):
         self.assertEqual(dim[1], 120)
         self.assertTrue(res)
 
+        print('.')
+
         res = self.ls.setPicDim('320x240')
         self.ls.reset()
         self.ls.takePic()
@@ -82,6 +84,8 @@ class TestLinkSprite(unittest.TestCase):
         self.assertEqual(dim[1], 240)
         self.assertTrue(res)
 
+        print('.')
+
         res = self.ls.setPicDim('640x480')
         self.ls.reset()
         self.ls.takePic()
@@ -90,6 +94,8 @@ class TestLinkSprite(unittest.TestCase):
         self.assertEqual(dim[0], 640)
         self.assertEqual(dim[1], 480)
         self.assertTrue(res)
+
+        print('.')
 
         res = self.ls.setPicDim('12x12')
         self.ls.reset()
