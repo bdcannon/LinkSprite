@@ -109,20 +109,20 @@ class LinkSprite :
 
     def readPicture(self, file) :
         address = 0
-        resp = b''
+        resp = bytearray()
 
         while not resp.strip().endswith(self.read_end) :
             print('At address %d' % address)
             addressBytes = address.to_bytes(2, byteorder='big')
             chunk = self.readChunk(addressBytes)
-            resp += chunk
+            resp.extend(chunk)
             address += self.read_size_inc
 
             # Check if we were at the end
             if self.read_end in chunk :
               break
 
-        end_index = resp.index(self.read_end)
+        end_index = bytes(resp).index(self.read_end)
 
         with open(file, 'w+b') as f :
             resp = resp[:end_index + 2]
